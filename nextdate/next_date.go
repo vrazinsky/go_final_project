@@ -9,10 +9,11 @@ import (
 )
 
 const (
-	TypeYear  = "y"
-	TypeDay   = "d"
-	TypeWeek  = "w"
-	TypeMonth = "m"
+	typeYear  = "y"
+	typeDay   = "d"
+	typeWeek  = "w"
+	typeMonth = "m"
+	layout    = "20060102"
 )
 
 func NextDate(now time.Time, date string, repeat string) (string, error) {
@@ -24,33 +25,33 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if t == TypeYear {
+	if t == typeYear {
 		cntYears := 1
 		for {
 			newDate := startDate.AddDate(cntYears, 0, 0)
 			if newDate.After(now) {
-				return newDate.Format("20060102"), nil
+				return newDate.Format(layout), nil
 			}
 			cntYears++
 		}
 	}
-	if t == TypeDay {
+	if t == typeDay {
 		daysDiff := arr1[0]
 		cnt := 1
 		for {
 			newDate := startDate.AddDate(0, 0, daysDiff*cnt)
-			if newDate.After(now) || newDate.Format("20060102") == now.Format("20060102") {
-				return newDate.Format("20060102"), nil
+			if newDate.After(now) || newDate.Format(layout) == now.Format(layout) {
+				return newDate.Format(layout), nil
 			}
 			cnt++
 		}
 	}
-	if t == TypeWeek {
+	if t == typeWeek {
 		cnt := 1
 		for {
 			newDate := now.AddDate(0, 0, cnt)
 			if slices.Contains(arr1, int(newDate.Weekday())) {
-				return newDate.Format("20060102"), nil
+				return newDate.Format(layout), nil
 			}
 			cnt++
 			if cnt > 100000 {
@@ -58,7 +59,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			}
 		}
 	}
-	if t == TypeMonth {
+	if t == typeMonth {
 		cnt := 1
 		var date time.Time
 		if now.After(startDate) {
@@ -73,13 +74,13 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 
 			if arr2 == nil || slices.Contains(arr2, int(newDate.Month())) {
 				if slices.Contains(arr1, int(newDate.Day())) {
-					return newDate.Format("20060102"), nil
+					return newDate.Format(layout), nil
 				}
 				if slices.Contains(arr1, -1) && newDate.Day() == maxDays {
-					return newDate.Format("20060102"), nil
+					return newDate.Format(layout), nil
 				}
 				if slices.Contains(arr1, -2) && newDate.Day() == maxDays-1 {
-					return newDate.Format("20060102"), nil
+					return newDate.Format(layout), nil
 				}
 			}
 			cnt++
@@ -94,11 +95,11 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 func parseRepeat(repeat string) (string, []int, []int, error) {
 	arr := strings.Split(repeat, " ")
 	t := arr[0]
-	if t == TypeYear {
+	if t == typeYear {
 		return t, nil, nil, nil
 	}
 
-	if t == TypeDay {
+	if t == typeDay {
 		if len(arr) != 2 || len(arr[1]) == 0 {
 			return "", nil, nil, errors.New("incorrect days repeat format")
 		}
@@ -111,7 +112,7 @@ func parseRepeat(repeat string) (string, []int, []int, error) {
 		}
 		return t, []int{n}, nil, nil
 	}
-	if t == TypeWeek {
+	if t == typeWeek {
 		if len(arr) != 2 || len(arr[1]) == 0 {
 			return "", nil, nil, errors.New("incorrect week repeat format")
 		}
@@ -134,7 +135,7 @@ func parseRepeat(repeat string) (string, []int, []int, error) {
 		}
 		return t, weekSlice, nil, nil
 	}
-	if t == TypeMonth {
+	if t == typeMonth {
 		if !(len(arr) == 2 || len(arr) == 3) {
 			return "", nil, nil, errors.New("incorrect month repeat format")
 		}

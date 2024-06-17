@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -14,7 +13,7 @@ func (h *Handlers) HandleDeleteTask(res http.ResponseWriter, req *http.Request) 
 		logWriteErr(res.Write(ErrorResponse(nil, "incorrect input data")))
 		return
 	}
-	_, err = h.db.ExecContext(h.ctx, deleteTaskQuery, sql.Named("id", id))
+	err = h.db.DeleteTask(id)
 	if err != nil {
 		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return

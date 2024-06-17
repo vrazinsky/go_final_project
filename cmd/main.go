@@ -19,7 +19,13 @@ import (
 func main() {
 	godotenv.Load()
 	ctx := context.Background()
-	db, err := store.InitDb(ctx)
+	dbfile := "scheduler.db"
+	envFile := os.Getenv("TODO_DBFILE")
+	if len(envFile) > 0 {
+		dbfile = envFile
+	}
+	db := store.NewDbService(dbfile, ctx)
+	err := db.InitDb()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,7 +33,7 @@ func main() {
 	var port int = 7540
 	a := auth.NewAuthService(os.Getenv("TODO_PASSWORD"), os.Getenv("AUTH_KEY"))
 	r := chi.NewRouter()
-	h := handlers.NewHandler(ctx, db)
+	h := handlers.NewHandler(ctx, *db)
 	FileServer(r, "/", http.Dir("web"))
 	r.Get("/api/nextdate", h.HandleNextTime)
 	r.Post("/api/task", a.Auth(h.HandleAddTask))

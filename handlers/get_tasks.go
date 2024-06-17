@@ -1,12 +1,10 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/vrazinsky/go-final-project/models"
@@ -27,32 +25,16 @@ func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 			filterByDate = true
-			searchValue = date.Format("20060102")
+			searchValue = date.Format(layout)
 		} else {
 			filterByTitle = true
 			searchValue = fmt.Sprintf("%%%v%%", searchValue)
 		}
 	}
-	rows, err := h.db.QueryContext(h.ctx, getTasksQuery,
-		sql.Named("filterByTitle", filterByTitle),
-		sql.Named("filterByDate", filterByDate),
-		sql.Named("searchValue", searchValue))
+	tasks, err := h.db.GetTasks(filterByTitle, filterByDate, searchValue)
 	if err != nil {
 		logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
 		return
-	}
-	defer rows.Close()
-	tasks := make([]models.Task, 0)
-	for rows.Next() {
-		var task models.Task
-		var taskId int
-		err := rows.Scan(&taskId, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-		task.Id = strconv.Itoa(taskId)
-		if err != nil {
-			logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
-			return
-		}
-		tasks = append(tasks, task)
 	}
 	response := models.GetTasksResponse{Tasks: &tasks}
 	data, _ := json.Marshal(response)

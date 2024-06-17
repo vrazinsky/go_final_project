@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -12,7 +11,7 @@ import (
 )
 
 func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
-	var input models.AddTaskInput
+	var input models.TaskInput
 	var buf bytes.Buffer
 	var date time.Time
 	var dateToDb string
@@ -20,60 +19,73 @@ func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 	}
 	if err = json.Unmarshal(buf.Bytes(), &input); err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 
 	if input.Title == "" {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no title")))
+		logWriteErr(res.Write(ErrorResponse(nil, "no title")))
 		return
 	}
 
 	if len(*input.Date) != 8 && len(*input.Date) != 0 {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
+		logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
 		return
 	}
 
 	if input.Date == nil || *input.Date == "" {
 		date = now
-		dateToDb = now.Format("20060102")
+		dateToDb = now.Format(layout)
 	} else {
 		date, err = time.Parse("20060102", *input.Date)
 		if err != nil {
-			logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
+			logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
 			return
 		}
 		dateToDb = *input.Date
 	}
 	if IsDateAfter(now, date) {
 		if input.Repeat == nil || *input.Repeat == "" {
-			dateToDb = now.Format("20060102")
+			dateToDb = now.Format(layout)
 		} else {
-			dateToDb, err = nextdate.NextDate(now, date.Format("20060102"), *input.Repeat)
+			dateToDb, err = nextdate.NextDate(now, date.Format(layout), *input.Repeat)
 			if err != nil {
-				logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
+				logWriteErr(res.Write(ErrorResponse(err, "")))
 				return
 			}
 		}
 	}
+	var repeat, comment string
+	if input.Repeat == nil {
+		repeat = ""
+	} else {
+		repeat = *input.Repeat
+	}
 
-	var insertId int64 = 0
-	row := h.db.QueryRowContext(h.ctx, addTaskQuery,
-		sql.Named("title", input.Title),
-		sql.Named("date", dateToDb),
-		sql.Named("comment", input.Comment),
-		sql.Named("repeat", input.Repeat))
-	err = row.Scan(&insertId)
+	if input.Comment == nil {
+		comment = ""
+	} else {
+		comment = *input.Comment
+	}
+
+	task := models.Task{
+		Date:    dateToDb,
+		Title:   input.Title,
+		Comment: comment,
+		Repeat:  repeat,
+	}
+
+	insertId, err := h.db.AddTask(task)
 	if err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	response := models.AddTaskResponse{Id: insertId}
+	response := models.Task{Id: insertId}
 	responseBytes, _ := json.Marshal(response)
 	logWriteErr(res.Write(responseBytes))
 }

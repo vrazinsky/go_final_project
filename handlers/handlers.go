@@ -2,33 +2,24 @@ package handlers
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/store"
 )
 
+const layout = "20060102"
+
 type Handlers struct {
-	db  *sql.DB
+	db  store.DbService
 	ctx context.Context
 }
 
-func NewHandler(ctx context.Context, db *sql.DB) *Handlers {
+func NewHandler(ctx context.Context, db store.DbService) *Handlers {
 	return &Handlers{ctx: ctx, db: db}
-}
-
-func ErrorAddTaskResponse(err error, errMsg string) []byte {
-	var response models.AddTaskResponse
-	if err != nil {
-		response = models.AddTaskResponse{Error: err.Error()}
-	} else {
-		response = models.AddTaskResponse{Error: errMsg}
-	}
-	data, _ := json.Marshal(response)
-	return data
 }
 
 func ErrorGetTasksResponse(err error, errMsg string) []byte {
@@ -54,8 +45,8 @@ func ErrorResponse(err error, errMsg string) []byte {
 }
 
 func IsDateAfter(date1, date2 time.Time) bool {
-	date1Int, _ := strconv.Atoi(date1.Format("20060102"))
-	date2Int, _ := strconv.Atoi(date2.Format("20060102"))
+	date1Int, _ := strconv.Atoi(date1.Format(layout))
+	date2Int, _ := strconv.Atoi(date2.Format(layout))
 	return date1Int > date2Int
 
 }

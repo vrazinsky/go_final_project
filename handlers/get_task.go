@@ -6,8 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-
-	"github.com/vrazinsky/go-final-project/models"
 )
 
 func (h *Handlers) HandleGetTask(res http.ResponseWriter, req *http.Request) {
@@ -17,11 +15,7 @@ func (h *Handlers) HandleGetTask(res http.ResponseWriter, req *http.Request) {
 		logWriteErr(res.Write(ErrorResponse(nil, "incorrect input data")))
 		return
 	}
-	row := h.db.QueryRowContext(h.ctx, getTaskQuery, sql.Named("id", id))
-	var task models.Task
-	var taskId int
-	err = row.Scan(&taskId, &task.Date, &task.Title, &task.Comment, &task.Repeat)
-	task.Id = strconv.Itoa(taskId)
+	task, err := h.db.GetTask(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			logWriteErr(res.Write(ErrorResponse(nil, "task not found")))

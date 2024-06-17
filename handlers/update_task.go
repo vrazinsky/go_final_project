@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -13,7 +12,7 @@ import (
 )
 
 func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) {
-	var task models.UpdateTaskInput
+	var input models.TaskInput
 	var buf bytes.Buffer
 	var date time.Time
 	var dateToDb string
@@ -24,70 +23,77 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
-	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
+	if err = json.Unmarshal(buf.Bytes(), &input); err != nil {
 		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 
-	if len(task.Id) == 0 {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no id")))
+	if len(input.Id) == 0 {
+		logWriteErr(res.Write(ErrorResponse(nil, "no id")))
 		return
 	}
-	_, err = strconv.Atoi(task.Id)
+	_, err = strconv.ParseInt(input.Id, 10, 64)
 	if err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect id")))
+		logWriteErr(res.Write(ErrorResponse(nil, "incorrect id")))
 		return
 	}
-	if task.Title == "" {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no title")))
-		return
-	}
-
-	if len(*task.Date) != 8 && len(*task.Date) != 0 {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
+	if input.Title == "" {
+		logWriteErr(res.Write(ErrorResponse(nil, "no title")))
 		return
 	}
 
-	if task.Date == nil || *task.Date == "" {
+	if len(*input.Date) != 8 && len(*input.Date) != 0 {
+		logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
+		return
+	}
+
+	if input.Date == nil || *input.Date == "" {
 		date = now
-		dateToDb = now.Format("20060102")
+		dateToDb = now.Format(layout)
 	} else {
-		date, err = time.Parse("20060102", *task.Date)
+		date, err = time.Parse("20060102", *input.Date)
 		if err != nil {
-			logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
+			logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
 			return
 		}
-		dateToDb = *task.Date
+		dateToDb = *input.Date
 	}
 	if IsDateAfter(now, date) {
-		if task.Repeat == nil || *task.Repeat == "" {
-			dateToDb = now.Format("20060102")
+		if input.Repeat == nil || *input.Repeat == "" {
+			dateToDb = now.Format(layout)
 		} else {
-			dateToDb, err = nextdate.NextDate(now, date.Format("20060102"), *task.Repeat)
+			dateToDb, err = nextdate.NextDate(now, date.Format(layout), *input.Repeat)
 			if err != nil {
-				logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
+				logWriteErr(res.Write(ErrorResponse(err, "")))
 				return
 			}
 		}
 	}
 
-	result, err := h.db.ExecContext(h.ctx, updateTakQuery,
-		sql.Named("id", task.Id),
-		sql.Named("title", task.Title),
-		sql.Named("date", dateToDb),
-		sql.Named("comment", task.Comment),
-		sql.Named("repeat", task.Repeat))
-	if err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
-		return
+	var repeat, comment string
+	if input.Repeat == nil {
+		repeat = ""
+	} else {
+		repeat = *input.Repeat
 	}
-	updatedRowsNumber, err := result.RowsAffected()
-	if err != nil {
-		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
-		return
+
+	if input.Comment == nil {
+		comment = ""
+	} else {
+		comment = *input.Comment
 	}
-	if updatedRowsNumber == 0 {
-		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "task not found")))
+
+	task := models.Task{
+		Id:      input.Id,
+		Date:    dateToDb,
+		Title:   input.Title,
+		Comment: comment,
+		Repeat:  repeat,
+	}
+
+	err = h.db.UpdateTask(task)
+	if err != nil {
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 	var response struct{}
