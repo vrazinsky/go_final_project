@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"net/http"
+	"log"
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/calc"
 	"github.com/vrazinsky/go-final-project/models"
 )
 
@@ -19,28 +18,6 @@ type Handlers struct {
 
 func NewHandler(ctx context.Context, db *sql.DB) *Handlers {
 	return &Handlers{ctx: ctx, db: db}
-}
-
-func (h *Handlers) HandleNextTime(res http.ResponseWriter, req *http.Request) {
-	now := req.FormValue("now")
-	date := req.FormValue("date")
-	repeat := req.FormValue("repeat")
-	if now == "" || date == "" || repeat == "" {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	nowDate, err := time.Parse("20060102", now)
-	if err != nil {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	nextDate, err := calc.NextDate(nowDate, date, repeat)
-	if err != nil {
-		res.Write([]byte(err.Error()))
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	res.Write([]byte(nextDate))
 }
 
 func ErrorAddTaskResponse(err error, errMsg string) []byte {
@@ -81,4 +58,10 @@ func IsDateAfter(date1, date2 time.Time) bool {
 	date2Int, _ := strconv.Atoi(date2.Format("20060102"))
 	return date1Int > date2Int
 
+}
+
+func logWriteErr(_ int, err error) {
+	if err != nil {
+		log.Printf("Write failed: %v", err)
+	}
 }

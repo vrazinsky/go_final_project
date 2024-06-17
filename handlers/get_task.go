@@ -14,7 +14,7 @@ func (h *Handlers) HandleGetTask(res http.ResponseWriter, req *http.Request) {
 	idStr := req.FormValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res.Write(ErrorResponse(nil, "incorrect input data"))
+		logWriteErr(res.Write(ErrorResponse(nil, "incorrect input data")))
 		return
 	}
 	row := h.db.QueryRowContext(h.ctx, getTaskQuery, sql.Named("id", id))
@@ -24,12 +24,12 @@ func (h *Handlers) HandleGetTask(res http.ResponseWriter, req *http.Request) {
 	task.Id = strconv.Itoa(taskId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			res.Write(ErrorResponse(nil, "task not found"))
+			logWriteErr(res.Write(ErrorResponse(nil, "task not found")))
 		} else {
-			res.Write(ErrorResponse(err, ""))
+			logWriteErr(res.Write(ErrorResponse(err, "")))
 		}
 		return
 	}
 	data, _ := json.Marshal(task)
-	res.Write(data)
+	logWriteErr(res.Write(data))
 }

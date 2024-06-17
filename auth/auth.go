@@ -4,16 +4,22 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"net/http"
-	"os"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Auth(next http.HandlerFunc) http.HandlerFunc {
+type AuthService struct {
+	pass    string
+	authKey string
+}
+
+func NewAuthService(pass string, authKey string) *AuthService {
+	return &AuthService{pass: pass, authKey: authKey}
+}
+
+func (s *AuthService) Auth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pass := os.Getenv("TODO_PASSWORD")
-		authKey := os.Getenv("AUTH_KEY")
-		if len(pass) > 0 && len(authKey) > 0 {
+		if len(s.pass) > 0 && len(s.authKey) > 0 {
 			cookie, err := r.Cookie("token")
 			if err != nil {
 				http.Error(w, "Authentification required", http.StatusUnauthorized)
@@ -22,13 +28,17 @@ func Auth(next http.HandlerFunc) http.HandlerFunc {
 			tokenStr := cookie.Value
 			var valid bool = true
 			token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-				return []byte(authKey), nil
+				return []byte(s.authKey), nil
 			})
+			if err != nil {
+				http.Error(w, "Authentification required", http.StatusUnauthorized)
+				return
+			}
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
 				valid = false
 			} else {
-				if claims["password"] != GetMD5Hash(pass) {
+				if claims["password"] != GetMD5Hash(s.pass) {
 					valid = false
 				}
 			}

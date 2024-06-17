@@ -8,15 +8,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/calc"
 	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/nextdate"
 )
 
 func (h *Handlers) HandleCompleteTask(res http.ResponseWriter, req *http.Request) {
 	idStr := req.FormValue("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		res.Write(ErrorResponse(nil, "incorrect input data"))
+		logWriteErr(res.Write(ErrorResponse(nil, "incorrect input data")))
 		return
 	}
 	row := h.db.QueryRowContext(h.ctx, getTaskQuery, sql.Named("id", id))
@@ -26,26 +26,26 @@ func (h *Handlers) HandleCompleteTask(res http.ResponseWriter, req *http.Request
 	task.Id = strconv.Itoa(taskId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			res.Write(ErrorResponse(nil, "task not found"))
+			logWriteErr(res.Write(ErrorResponse(nil, "task not found")))
 		} else {
-			res.Write(ErrorResponse(err, ""))
+			logWriteErr(res.Write(ErrorResponse(err, "")))
 		}
 		return
 	}
 	if task.Repeat == nil || *task.Repeat == "" {
 		_, err = h.db.ExecContext(h.ctx, deleteTaskQuery, sql.Named("id", id))
 		if err != nil {
-			res.Write(ErrorResponse(err, ""))
+			logWriteErr(res.Write(ErrorResponse(err, "")))
 			return
 		}
 		var response struct{}
 		responseBytes, _ := json.Marshal(response)
-		res.Write(responseBytes)
+		logWriteErr(res.Write(responseBytes))
 		return
 	}
-	nextDate, err := calc.NextDate(time.Now(), task.Date, *task.Repeat)
+	nextDate, err := nextdate.NextDate(time.Now(), task.Date, *task.Repeat)
 	if err != nil {
-		res.Write(ErrorResponse(err, ""))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 	_, err = h.db.ExecContext(h.ctx, updateTakQuery,
@@ -55,10 +55,10 @@ func (h *Handlers) HandleCompleteTask(res http.ResponseWriter, req *http.Request
 		sql.Named("comment", task.Comment),
 		sql.Named("repeat", task.Repeat))
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 		return
 	}
 	var response struct{}
 	responseBytes, _ := json.Marshal(response)
-	res.Write(responseBytes)
+	logWriteErr(res.Write(responseBytes))
 }

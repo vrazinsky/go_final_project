@@ -25,18 +25,19 @@ func main() {
 	}
 
 	var port int = 7540
+	a := auth.NewAuthService(os.Getenv("TODO_PASSWORD"), os.Getenv("AUTH_KEY"))
 	r := chi.NewRouter()
 	h := handlers.NewHandler(ctx, db)
 	FileServer(r, "/", http.Dir("web"))
 	r.Get("/api/nextdate", h.HandleNextTime)
-	r.Post("/api/task", auth.Auth(h.HandleAddTask))
-	r.Get("/api/task", auth.Auth(h.HandleGetTask))
-	r.Get("/api/tasks", auth.Auth(h.HandleGetTasks))
-	r.Put("/api/task", auth.Auth(h.HandleUpdateTask))
-	r.Post("/api/task/done", auth.Auth(h.HandleCompleteTask))
-	r.Delete("/api/task", auth.Auth(h.HandleDeleteTask))
+	r.Post("/api/task", a.Auth(h.HandleAddTask))
+	r.Get("/api/task", a.Auth(h.HandleGetTask))
+	r.Get("/api/tasks", a.Auth(h.HandleGetTasks))
+	r.Put("/api/task", a.Auth(h.HandleUpdateTask))
+	r.Post("/api/task/done", a.Auth(h.HandleCompleteTask))
+	r.Delete("/api/task", a.Auth(h.HandleDeleteTask))
 
-	r.Post("/api/signin", h.HandleSignIn)
+	r.Post("/api/signin", a.HandleSignIn)
 
 	envPort := os.Getenv("TODO_PORT")
 	if len(envPort) > 0 {
@@ -44,10 +45,12 @@ func main() {
 			port = int(eport)
 		}
 	}
+	log.Println("listen on", port)
 	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {

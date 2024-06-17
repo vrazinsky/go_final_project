@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/calc"
 	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/nextdate"
 )
 
 func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) {
@@ -21,30 +21,30 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		res.Write(ErrorResponse(err, ""))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 	if err = json.Unmarshal(buf.Bytes(), &task); err != nil {
-		res.Write(ErrorResponse(err, ""))
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 
 	if len(task.Id) == 0 {
-		res.Write(ErrorAddTaskResponse(nil, "no id"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no id")))
 		return
 	}
 	_, err = strconv.Atoi(task.Id)
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(nil, "incorrect id"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect id")))
 		return
 	}
 	if task.Title == "" {
-		res.Write(ErrorAddTaskResponse(nil, "no title"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no title")))
 		return
 	}
 
 	if len(*task.Date) != 8 && len(*task.Date) != 0 {
-		res.Write(ErrorAddTaskResponse(nil, "incorrect date format"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 	} else {
 		date, err = time.Parse("20060102", *task.Date)
 		if err != nil {
-			res.Write(ErrorAddTaskResponse(nil, "incorrect date format"))
+			logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
 			return
 		}
 		dateToDb = *task.Date
@@ -63,9 +63,9 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 		if task.Repeat == nil || *task.Repeat == "" {
 			dateToDb = now.Format("20060102")
 		} else {
-			dateToDb, err = calc.NextDate(now, date.Format("20060102"), *task.Repeat)
+			dateToDb, err = nextdate.NextDate(now, date.Format("20060102"), *task.Repeat)
 			if err != nil {
-				res.Write(ErrorAddTaskResponse(err, ""))
+				logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 				return
 			}
 		}
@@ -78,19 +78,19 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 		sql.Named("comment", task.Comment),
 		sql.Named("repeat", task.Repeat))
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 		return
 	}
 	updatedRowsNumber, err := result.RowsAffected()
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 		return
 	}
 	if updatedRowsNumber == 0 {
-		res.Write(ErrorAddTaskResponse(nil, "task not found"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "task not found")))
 		return
 	}
 	var response struct{}
 	responseBytes, _ := json.Marshal(response)
-	res.Write(responseBytes)
+	logWriteErr(res.Write(responseBytes))
 }

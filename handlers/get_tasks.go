@@ -23,7 +23,7 @@ func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 		if hasDate {
 			date, err := time.Parse("02.01.2006", searchValue)
 			if err != nil {
-				res.Write(ErrorGetTasksResponse(err, ""))
+				logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
 				return
 			}
 			filterByDate = true
@@ -38,7 +38,7 @@ func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 		sql.Named("filterByDate", filterByDate),
 		sql.Named("searchValue", searchValue))
 	if err != nil {
-		res.Write(ErrorGetTasksResponse(err, ""))
+		logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
 		return
 	}
 	defer rows.Close()
@@ -49,12 +49,12 @@ func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 		err := rows.Scan(&taskId, &task.Date, &task.Title, &task.Comment, &task.Repeat)
 		task.Id = strconv.Itoa(taskId)
 		if err != nil {
-			res.Write(ErrorGetTasksResponse(err, ""))
+			logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
 			return
 		}
 		tasks = append(tasks, task)
 	}
 	response := models.GetTasksResponse{Tasks: &tasks}
 	data, _ := json.Marshal(response)
-	res.Write(data)
+	logWriteErr(res.Write(data))
 }

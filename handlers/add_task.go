@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/calc"
 	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/nextdate"
 )
 
 func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
@@ -20,21 +20,20 @@ func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	_, err := buf.ReadFrom(req.Body)
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
-		return
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 	}
 	if err = json.Unmarshal(buf.Bytes(), &input); err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 		return
 	}
 
 	if input.Title == "" {
-		res.Write(ErrorAddTaskResponse(nil, "no title"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "no title")))
 		return
 	}
 
 	if len(*input.Date) != 8 && len(*input.Date) != 0 {
-		res.Write(ErrorAddTaskResponse(nil, "incorrect date format"))
+		logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
 		return
 	}
 
@@ -44,7 +43,7 @@ func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
 	} else {
 		date, err = time.Parse("20060102", *input.Date)
 		if err != nil {
-			res.Write(ErrorAddTaskResponse(nil, "incorrect date format"))
+			logWriteErr(res.Write(ErrorAddTaskResponse(nil, "incorrect date format")))
 			return
 		}
 		dateToDb = *input.Date
@@ -53,9 +52,9 @@ func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
 		if input.Repeat == nil || *input.Repeat == "" {
 			dateToDb = now.Format("20060102")
 		} else {
-			dateToDb, err = calc.NextDate(now, date.Format("20060102"), *input.Repeat)
+			dateToDb, err = nextdate.NextDate(now, date.Format("20060102"), *input.Repeat)
 			if err != nil {
-				res.Write(ErrorAddTaskResponse(err, ""))
+				logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 				return
 			}
 		}
@@ -69,12 +68,12 @@ func (h *Handlers) HandleAddTask(res http.ResponseWriter, req *http.Request) {
 		sql.Named("repeat", input.Repeat))
 	err = row.Scan(&insertId)
 	if err != nil {
-		res.Write(ErrorAddTaskResponse(err, ""))
+		logWriteErr(res.Write(ErrorAddTaskResponse(err, "")))
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	response := models.AddTaskResponse{Id: insertId}
 	responseBytes, _ := json.Marshal(response)
-	res.Write(responseBytes)
+	logWriteErr(res.Write(responseBytes))
 }
