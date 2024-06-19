@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/nextdate"
+	"github.com/vrazinsky/go-final-project/internal/nextdate"
+	"github.com/vrazinsky/go-final-project/internal/utils"
 )
 
 func (h *Handlers) HandleNextTime(res http.ResponseWriter, req *http.Request) {
@@ -15,7 +16,7 @@ func (h *Handlers) HandleNextTime(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	nowDate, err := time.Parse("20060102", now)
+	nowDate, err := time.Parse(utils.Layout, now)
 	if err != nil {
 		res.WriteHeader(http.StatusBadRequest)
 		return

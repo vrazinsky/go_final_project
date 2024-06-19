@@ -9,9 +9,11 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/internal/models"
 	_ "modernc.org/sqlite"
 )
+
+const limit = 50
 
 type DbService struct {
 	dbfile string
@@ -54,6 +56,10 @@ func (s *DbService) InitDb() error {
 	return nil
 }
 
+func (s *DbService) Close() error {
+	return s.db.Close()
+}
+
 func (s *DbService) AddTask(input models.Task) (string, error) {
 	var insertId int64 = 0
 	row := s.db.QueryRowContext(s.ctx, addTaskQuery,
@@ -82,12 +88,14 @@ func (s *DbService) GetTask(id int) (models.Task, error) {
 	return task, nil
 }
 
-func (s *DbService) GetTasks(filterByTitle, filterByDate bool, searchValue string) ([]models.Task, error) {
+func (s *DbService) GetTasks(filterByText, filterByDate bool, searchValue string) ([]models.Task, error) {
 	tasks := make([]models.Task, 0)
 	rows, err := s.db.QueryContext(s.ctx, getTasksQuery,
-		sql.Named("filterByTitle", filterByTitle),
+		sql.Named("filterByText", filterByText),
 		sql.Named("filterByDate", filterByDate),
-		sql.Named("searchValue", searchValue))
+		sql.Named("searchValue", searchValue),
+		sql.Named("limit", limit),
+	)
 	if err != nil {
 		return tasks, err
 	}

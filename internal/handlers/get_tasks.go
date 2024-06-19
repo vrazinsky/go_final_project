@@ -7,14 +7,15 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/internal/models"
+	"github.com/vrazinsky/go-final-project/internal/utils"
 )
 
 func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 	searchValue := req.FormValue("search")
 	var (
-		filterByDate  bool = false
-		filterByTitle bool = false
+		filterByDate bool = false
+		filterByText bool = false
 	)
 	if searchValue != "" {
 		hasDate, _ := regexp.MatchString("^\\d{2}\\.\\d{2}\\.\\d{4}$", searchValue)
@@ -25,13 +26,13 @@ func (h *Handlers) HandleGetTasks(res http.ResponseWriter, req *http.Request) {
 				return
 			}
 			filterByDate = true
-			searchValue = date.Format(layout)
+			searchValue = date.Format(utils.Layout)
 		} else {
-			filterByTitle = true
+			filterByText = true
 			searchValue = fmt.Sprintf("%%%v%%", searchValue)
 		}
 	}
-	tasks, err := h.db.GetTasks(filterByTitle, filterByDate, searchValue)
+	tasks, err := h.db.GetTasks(filterByText, filterByDate, searchValue)
 	if err != nil {
 		logWriteErr(res.Write(ErrorGetTasksResponse(err, "")))
 		return

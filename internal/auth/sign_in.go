@@ -7,8 +7,8 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/vrazinsky/go-final-project/handlers"
-	"github.com/vrazinsky/go-final-project/models"
+	"github.com/vrazinsky/go-final-project/internal/handlers"
+	"github.com/vrazinsky/go-final-project/internal/models"
 )
 
 func (a *AuthService) HandleSignIn(res http.ResponseWriter, req *http.Request) {

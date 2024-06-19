@@ -7,11 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/models"
-	"github.com/vrazinsky/go-final-project/store"
+	"github.com/vrazinsky/go-final-project/internal/models"
+	"github.com/vrazinsky/go-final-project/internal/store"
+	"github.com/vrazinsky/go-final-project/internal/utils"
 )
-
-const layout = "20060102"
 
 type Handlers struct {
 	db  store.DbService
@@ -45,8 +44,8 @@ func ErrorResponse(err error, errMsg string) []byte {
 }
 
 func IsDateAfter(date1, date2 time.Time) bool {
-	date1Int, _ := strconv.Atoi(date1.Format(layout))
-	date2Int, _ := strconv.Atoi(date2.Format(layout))
+	date1Int, _ := strconv.Atoi(date1.Format(utils.Layout))
+	date2Int, _ := strconv.Atoi(date2.Format(utils.Layout))
 	return date1Int > date2Int
 
 }

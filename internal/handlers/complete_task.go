@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/models"
-	"github.com/vrazinsky/go-final-project/nextdate"
+	"github.com/vrazinsky/go-final-project/internal/models"
+	"github.com/vrazinsky/go-final-project/internal/nextdate"
 )
 
 func (h *Handlers) HandleCompleteTask(res http.ResponseWriter, req *http.Request) {

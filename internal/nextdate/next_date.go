@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/vrazinsky/go-final-project/internal/utils"
 )
 
 const (
@@ -13,15 +15,14 @@ const (
 	typeDay   = "d"
 	typeWeek  = "w"
 	typeMonth = "m"
-	layout    = "20060102"
 )
 
 func NextDate(now time.Time, date string, repeat string) (string, error) {
-	startDate, err := time.Parse("20060102", date)
+	startDate, err := time.Parse(utils.Layout, date)
 	if err != nil {
 		return "", err
 	}
-	t, arr1, arr2, err := parseRepeat(repeat)
+	t, arr1, arr2, err := ParseRepeat(repeat)
 	if err != nil {
 		return "", err
 	}
@@ -30,7 +31,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		for {
 			newDate := startDate.AddDate(cntYears, 0, 0)
 			if newDate.After(now) {
-				return newDate.Format(layout), nil
+				return newDate.Format(utils.Layout), nil
 			}
 			cntYears++
 		}
@@ -40,18 +41,24 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 		cnt := 1
 		for {
 			newDate := startDate.AddDate(0, 0, daysDiff*cnt)
-			if newDate.After(now) || newDate.Format(layout) == now.Format(layout) {
-				return newDate.Format(layout), nil
+			if newDate.After(now) || newDate.Format(utils.Layout) == now.Format(utils.Layout) {
+				return newDate.Format(utils.Layout), nil
 			}
 			cnt++
 		}
 	}
 	if t == typeWeek {
+		var date time.Time
+		if now.After(startDate) {
+			date = now
+		} else {
+			date = startDate
+		}
 		cnt := 1
 		for {
-			newDate := now.AddDate(0, 0, cnt)
-			if slices.Contains(arr1, int(newDate.Weekday())) {
-				return newDate.Format(layout), nil
+			nextDate := date.AddDate(0, 0, cnt)
+			if slices.Contains(arr1, int(nextDate.Weekday())) {
+				return nextDate.Format(utils.Layout), nil
 			}
 			cnt++
 			if cnt > 100000 {
@@ -68,19 +75,19 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 			date = startDate
 		}
 		for {
-			newDate := date.AddDate(0, 0, cnt)
-			firstDay := time.Date(newDate.Year(), newDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+			nextDate := date.AddDate(0, 0, cnt)
+			firstDay := time.Date(nextDate.Year(), nextDate.Month(), 1, 0, 0, 0, 0, time.UTC)
 			maxDays := firstDay.AddDate(0, 1, 0).Add(-time.Nanosecond).Day()
 
-			if arr2 == nil || slices.Contains(arr2, int(newDate.Month())) {
-				if slices.Contains(arr1, int(newDate.Day())) {
-					return newDate.Format(layout), nil
+			if arr2 == nil || slices.Contains(arr2, int(nextDate.Month())) {
+				if slices.Contains(arr1, int(nextDate.Day())) {
+					return nextDate.Format(utils.Layout), nil
 				}
-				if slices.Contains(arr1, -1) && newDate.Day() == maxDays {
-					return newDate.Format(layout), nil
+				if slices.Contains(arr1, -1) && nextDate.Day() == maxDays {
+					return nextDate.Format(utils.Layout), nil
 				}
-				if slices.Contains(arr1, -2) && newDate.Day() == maxDays-1 {
-					return newDate.Format(layout), nil
+				if slices.Contains(arr1, -2) && nextDate.Day() == maxDays-1 {
+					return nextDate.Format(utils.Layout), nil
 				}
 			}
 			cnt++
@@ -92,7 +99,7 @@ func NextDate(now time.Time, date string, repeat string) (string, error) {
 	return "", nil
 }
 
-func parseRepeat(repeat string) (string, []int, []int, error) {
+func ParseRepeat(repeat string) (string, []int, []int, error) {
 	arr := strings.Split(repeat, " ")
 	t := arr[0]
 	if t == typeYear {
@@ -124,7 +131,7 @@ func parseRepeat(repeat string) (string, []int, []int, error) {
 				return "", nil, nil, err
 			}
 			if weekDayInt < 1 || weekDayInt > 7 {
-				return "", nil, nil, errors.New("incorrect week  value")
+				return "", nil, nil, errors.New("incorrect week value")
 			}
 			if weekDayInt == 7 {
 				weekDayInt = 0

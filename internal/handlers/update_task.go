@@ -7,8 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/vrazinsky/go-final-project/models"
-	"github.com/vrazinsky/go-final-project/nextdate"
+	"github.com/vrazinsky/go-final-project/internal/models"
+	"github.com/vrazinsky/go-final-project/internal/nextdate"
+	"github.com/vrazinsky/go-final-project/internal/utils"
 )
 
 func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) {
@@ -37,32 +38,24 @@ func (h *Handlers) HandleUpdateTask(res http.ResponseWriter, req *http.Request) 
 		logWriteErr(res.Write(ErrorResponse(nil, "incorrect id")))
 		return
 	}
-	if input.Title == "" {
-		logWriteErr(res.Write(ErrorResponse(nil, "no title")))
-		return
-	}
-
-	if len(*input.Date) != 8 && len(*input.Date) != 0 {
-		logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
+	err = input.Validate()
+	if err != nil {
+		logWriteErr(res.Write(ErrorResponse(err, "")))
 		return
 	}
 
 	if input.Date == nil || *input.Date == "" {
 		date = now
-		dateToDb = now.Format(layout)
+		dateToDb = now.Format(utils.Layout)
 	} else {
-		date, err = time.Parse("20060102", *input.Date)
-		if err != nil {
-			logWriteErr(res.Write(ErrorResponse(nil, "incorrect date format")))
-			return
-		}
+		date, _ = time.Parse("20060102", *input.Date)
 		dateToDb = *input.Date
 	}
 	if IsDateAfter(now, date) {
 		if input.Repeat == nil || *input.Repeat == "" {
-			dateToDb = now.Format(layout)
+			dateToDb = now.Format(utils.Layout)
 		} else {
-			dateToDb, err = nextdate.NextDate(now, date.Format(layout), *input.Repeat)
+			dateToDb, err = nextdate.NextDate(now, date.Format(utils.Layout), *input.Repeat)
 			if err != nil {
 				logWriteErr(res.Write(ErrorResponse(err, "")))
 				return

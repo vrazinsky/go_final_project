@@ -16,8 +16,8 @@ const addTaskQuery = `INSERT INTO scheduler
 VALUES(:date, :title, :comment, :repeat)
 RETURNING id;
 `
-const getTasksQuery = "SELECT id, date, title, comment, repeat from scheduler where (:filterByTitle = false or title like :searchValue) and (:filterByDate = false or date = :searchValue) order by date asc limit 50"
-const getTaskQuery = "SELECT id, date, title, comment, repeat from scheduler where id = :id"
+const getTasksQuery = "SELECT id, date, title, comment, repeat FROM scheduler WHERE (:filterByText = false or title like :searchValue or comment like :searchValue) and (:filterByDate = false or date = :searchValue) ORDER BY date ASC LIMIT :limit"
+const getTaskQuery = "SELECT id, date, title, comment, repeat from scheduler WHERE id = :id"
 const updateTakQuery = `UPDATE scheduler
 SET date=:date, 
 title=:title, 

@@ -11,20 +11,25 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
-	"github.com/vrazinsky/go-final-project/auth"
-	"github.com/vrazinsky/go-final-project/handlers"
-	"github.com/vrazinsky/go-final-project/store"
+	"github.com/vrazinsky/go-final-project/internal/auth"
+	"github.com/vrazinsky/go-final-project/internal/handlers"
+	"github.com/vrazinsky/go-final-project/internal/store"
 )
 
 func main() {
 	godotenv.Load()
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		cancel()
+	}()
+
 	dbfile := "scheduler.db"
 	envFile := os.Getenv("TODO_DBFILE")
 	if len(envFile) > 0 {
 		dbfile = envFile
 	}
 	db := store.NewDbService(dbfile, ctx)
+	defer db.Close()
 	err := db.InitDb()
 	if err != nil {
 		log.Fatal(err)
@@ -52,7 +57,12 @@ func main() {
 		}
 	}
 	log.Println("listen on", port)
-	err = http.ListenAndServe(fmt.Sprintf(":%d", port), r)
+	httpServer := &http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: r,
+	}
+	defer httpServer.Close()
+	err = httpServer.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}
